@@ -1,0 +1,234 @@
+const canvas = document.getElementById('lienzo');
+const ctx = canvas.getContext('2d');
+
+// Variables de UI y Paneles
+const panel = document.getElementById('panel');
+const btnMinimizar = document.getElementById('btnMinimizar');
+const btnRestaurar = document.getElementById('btnRestaurar');
+const btnPausa = document.getElementById('btnPausa');
+const btnMalla = document.getElementById('btnMalla');
+const btnReiniciar = document.getElementById('btnReiniciar');
+
+let isPaused = false;
+let showGrid = false;
+
+const controlViento = document.getElementById('controlViento');
+const controlGravedad = document.getElementById('controlGravedad');
+const controlIntensidad = document.getElementById('controlIntensidad');
+const controlLiquido = document.getElementById('controlLiquido');
+const controlFondo = document.getElementById('controlFondo');
+const tiempoLlenadoText = document.getElementById('tiempoLlenado');
+const valViento = document.getElementById('valViento');
+const valGravedad = document.getElementById('valGravedad');
+const valIntensidad = document.getElementById('valIntensidad');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// Constantes Físicas y de Capacidad
+const fluidos = {
+    agua: { color: 'rgba(174, 194, 224, 0.6)', friccion: 1, grosor: 1, volGota: 0.05 },
+    aceite: { color: 'rgba(218, 165, 32, 0.7)', friccion: 0.6, grosor: 2, volGota: 0.08 },
+    miel: { color: 'rgba(255, 140, 0, 0.8)', friccion: 0.2, grosor: 4, volGota: 0.15 }
+};
+
+let gotas = [];
+let params = { viento: 0, gravedad: 9.8, intensidad: 500, liquido: fluidos.agua };
+
+// Variables para el Cálculo del Recipiente
+const capacidadMax = 67; // en Litros
+let volumenAcumulado = 0; 
+let flujoPorSegundo = 0; // Tasa de cambio (dQ/dt)
+let ultimoTiempo = 0; // Para el cálculo del Delta T
+
+function inicializarGotas() {
+    gotas = [];
+    for (let i = 0; i < params.intensidad; i++) {
+        gotas.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            largo: Math.random() * 15 + 10,
+            velocidadY: Math.random() * 2
+        });
+    }
+}
+
+function calcularLlenado() {
+    // Cálculo del flujo másico/volumétrico
+    const gotasPorSegundo = params.intensidad * (params.gravedad / 9.8) * params.liquido.friccion;
+    flujoPorSegundo = (gotasPorSegundo * params.liquido.volGota); // Litros por segundo
+    
+    if (flujoPorSegundo <= 0) return;
+    
+    const segundosTotales = capacidadMax / flujoPorSegundo;
+    
+    if (segundosTotales < 60) {
+        tiempoLlenadoText.innerText = `${segundosTotales.toFixed(1)} segundos`;
+    } else {
+        const minutos = Math.floor(segundosTotales / 60);
+        const segundos = Math.floor(segundosTotales % 60);
+        tiempoLlenadoText.innerText = `${minutos} min ${segundos} seg`;
+    }
+}
+// Referencias al HUD Flotante
+const hudTanque = document.getElementById('hudTanque');
+const hudVolumen = document.getElementById('hudVolumen');
+const hudFlujo = document.getElementById('hudFlujo');
+const hudTiempo = document.getElementById('hudTiempo');
+// Dibujado espacial del recipiente en la parte inferior
+function dibujarRecipiente() {
+    const anchoTanque = 220;
+    const altoTanque = 150;
+    const posX = (canvas.width - anchoTanque) / 2;
+    const posY = canvas.height - altoTanque - 30; 
+
+    // Borde del contenedor
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(posX, posY); 
+    ctx.lineTo(posX, posY + altoTanque); 
+    ctx.lineTo(posX + anchoTanque, posY + altoTanque); 
+    ctx.lineTo(posX + anchoTanque, posY); 
+    ctx.stroke();
+
+    // Relleno del fluido
+    const proporcion = Math.min(volumenAcumulado / capacidadMax, 1);
+    const alturaLiquido = altoTanque * proporcion;
+    
+    ctx.fillStyle = params.liquido.color;
+    ctx.fillRect(posX, (posY + altoTanque) - alturaLiquido, anchoTanque, alturaLiquido);
+
+    // --- LÓGICA DE LA TABLA EMERGENTE (HUD) ---
+    
+    // Hacer visible la tabla y anclarla espacialmente a la derecha del tanque
+    hudTanque.style.opacity = '1';
+    hudTanque.style.left = `${posX + anchoTanque + 20}px`;
+    hudTanque.style.top = `${posY + 10}px`;
+    
+    // Cambiar el borde del HUD para que coincida con el color del líquido seleccionado
+    hudTanque.style.borderLeftColor = params.liquido.color;
+
+    // Actualizar las métricas estáticas en la tabla
+    hudVolumen.innerText = `${volumenAcumulado.toFixed(2)} L`;
+    hudFlujo.innerText = `${flujoPorSegundo.toFixed(3)} L/s`;
+
+    // Calcular el conteo regresivo dinámico (ETA)
+    if (volumenAcumulado >= capacidadMax) {
+        hudTiempo.innerText = "LLENADO COMPLETO";
+        hudTiempo.style.color = "#4ade80"; // Verde neón
+    } else if (flujoPorSegundo > 0 && !isPaused) {
+        // Cálculo del diferencial de tiempo restante
+        const segundosRestantes = (capacidadMax - volumenAcumulado) / flujoPorSegundo;
+        
+        if (segundosRestantes < 60) {
+            hudTiempo.innerText = `00:${Math.ceil(segundosRestantes).toString().padStart(2, '0')}`;
+        } else {
+            const minutos = Math.floor(segundosRestantes / 60);
+            const segundos = Math.ceil(segundosRestantes % 60);
+            hudTiempo.innerText = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+        }
+        hudTiempo.style.color = "#fbbf24"; // Amarillo de cálculo
+    } else if (isPaused) {
+        hudTiempo.innerText = "EN PAUSA";
+        hudTiempo.style.color = "#f87171"; // Rojo
+    }
+}
+function dibujarMalla() {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.lineWidth = 1;
+    const size = 50; 
+    ctx.beginPath();
+    for (let x = 0; x < canvas.width; x += size) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
+    for (let y = 0; y < canvas.height; y += size) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
+    ctx.stroke();
+}
+
+// Bucle principal (Renderizado y motor físico)
+function animar(tiempoActual) {
+    // Cálculo del Delta de Tiempo (dt) para la integración numérica
+    if (!ultimoTiempo) ultimoTiempo = tiempoActual;
+    const dt = (tiempoActual - ultimoTiempo) / 1000; // Segundos transcurridos desde el último fotograma
+    ultimoTiempo = tiempoActual;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (showGrid) dibujarMalla();
+
+    // Integración del volumen usando el método de Euler: V_nuevo = V_actual + (dQ/dt * dt)
+    if (!isPaused && volumenAcumulado < capacidadMax) {
+        volumenAcumulado += flujoPorSegundo * dt;
+    }
+
+    // Renderizar Lluvia
+    ctx.strokeStyle = params.liquido.color;
+    ctx.lineWidth = params.liquido.grosor;
+
+    for (let i = 0; i < gotas.length; i++) {
+        let gota = gotas[i];
+        
+        ctx.beginPath();
+        ctx.moveTo(gota.x, gota.y);
+        ctx.lineTo(gota.x + params.viento, gota.y + gota.largo);
+        ctx.stroke();
+
+        if (!isPaused) {
+            let velocidadTerminal = params.gravedad * params.liquido.friccion * 2;
+            
+            if (gota.velocidadY < velocidadTerminal) {
+                gota.velocidadY += (params.gravedad * 0.05);
+            } else {
+                gota.velocidadY = velocidadTerminal;
+            }
+
+            gota.y += gota.velocidadY;
+            gota.x += params.viento;
+
+            if (gota.y > canvas.height) {
+                gota.y = -20;
+                gota.x = Math.random() * canvas.width;
+                gota.velocidadY = Math.random() * 2;
+            }
+            if (gota.x > canvas.width) gota.x = 0;
+            if (gota.x < 0) gota.x = canvas.width;
+        }
+    }
+
+    dibujarRecipiente();
+    requestAnimationFrame(animar);
+}
+
+// Listeners UI
+btnMinimizar.addEventListener('click', () => { panel.style.display = 'none'; btnRestaurar.style.display = 'block'; });
+btnRestaurar.addEventListener('click', () => { panel.style.display = 'flex'; btnRestaurar.style.display = 'none'; });
+btnPausa.addEventListener('click', () => { 
+    isPaused = !isPaused; 
+    btnPausa.innerText = isPaused ? '▶️ Reanudar' : '⏸️ Pausa'; 
+    btnPausa.style.background = isPaused ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)'; 
+});
+btnMalla.addEventListener('click', () => { 
+    showGrid = !showGrid; 
+    btnMalla.style.background = showGrid ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)'; 
+});
+
+// Reinicio del sistema limpia también el volumen del tanque
+btnReiniciar.addEventListener('click', () => { 
+    inicializarGotas(); 
+    volumenAcumulado = 0; 
+});
+
+controlFondo.addEventListener('change', (e) => document.body.style.backgroundColor = e.target.value);
+controlLiquido.addEventListener('change', (e) => { params.liquido = fluidos[e.target.value]; calcularLlenado(); });
+controlViento.addEventListener('input', (e) => { params.viento = parseFloat(e.target.value); valViento.innerText = params.viento; });
+controlGravedad.addEventListener('input', (e) => { params.gravedad = parseFloat(e.target.value); valGravedad.innerText = params.gravedad; calcularLlenado(); });
+controlIntensidad.addEventListener('input', (e) => { params.intensidad = parseInt(e.target.value); valIntensidad.innerText = params.intensidad; inicializarGotas(); calcularLlenado(); });
+
+window.addEventListener('resize', () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
+// Arranque
+inicializarGotas();
+calcularLlenado();
+requestAnimationFrame(animar);

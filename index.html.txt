@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulación Física de Fluidos</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Botón flotante para restaurar el panel -->
+    <button id="btnRestaurar" class="btn-flotante" style="display: none;">⚙️ Mostrar Parámetros</button>
+
+    <!-- Panel principal redimensionable -->
+    <div id="panel">
+      <div class="cabecera-panel">
+        <h3>Parámetros</h3>
+        <button id="btnMinimizar" class="btn-accion">➖</button>
+      </div>
+      
+      <div class="contenido-panel">
+        <label>Entorno Geográfico:</label>
+        <select id="controlFondo">
+          <option value="#0b101e">Noche (Tierra)</option>
+          <option value="#5d4037">Atmósfera Densa (Marte)</option>
+          <option value="#1a252c">Ciudad Nublada</option>
+        </select>
+
+        <label>Tipo de Líquido:</label>
+        <select id="controlLiquido">
+          <option value="agua">Agua (ρ = 1000 kg/m³)</option>
+          <option value="aceite">Aceite (ρ = 900 kg/m³, Viscoso)</option>
+          <option value="miel">Miel (ρ = 1400 kg/m³, Alta Viscosidad)</option>
+        </select>
+
+        <label>Gravedad (m/s²): <span id="valGravedad">9.8</span></label>
+        <input type="range" id="controlGravedad" min="1" max="25" value="9.8" step="0.1">
+
+        <label>Viento (m/s): <span id="valViento">0</span></label>
+        <input type="range" id="controlViento" min="-20" max="20" value="0">
+
+        <label>Intensidad (Flujo): <span id="valIntensidad">500</span></label>
+        <input type="range" id="controlIntensidad" min="100" max="1500" value="500">
+
+        <div class="caja-calculo">
+           <strong>Llenado (67 L)</strong><br>
+           <small>Área: 1 m²</small><br>
+           <span id="tiempoLlenado" class="resultado">Calculando...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra lateral de herramientas analíticas -->
+    <div id="sidebar">
+        <button id="btnPausa" class="btn-herramienta" title="Pausar/Reanudar Simulación">⏸️ Pausa</button>
+        <button id="btnMalla" class="btn-herramienta" title="Mostrar Cuadrícula de Referencia">📏 Malla</button>
+        <button id="btnReiniciar" class="btn-herramienta" title="Vaciar y reiniciar flujo">🔄 Reiniciar</button>
+    </div>
+    
+    <canvas id="lienzo"></canvas>
+    <script src="script.js" defer></script>
+</body>
+</html>
+<div id="hudTanque" class="hud-flotante">
+        <div class="hud-header">📡 Telemetría en Tiempo Real</div>
+        <table class="hud-tabla">
+            <tr>
+                <td>Nivel Actual:</td>
+                <td id="hudVolumen">0.00 L</td>
+            </tr>
+            <tr>
+                <td>Caudal (Flujo):</td>
+                <td id="hudFlujo">0.00 L/s</td>
+            </tr>
+            <tr>
+                <td>Tiempo Restante:</td>
+                <td id="hudTiempo" class="destaque">Calculando...</td>
+            </tr>
+        </table>
+    </div>
+
+    <canvas id="lienzo"></canvas>

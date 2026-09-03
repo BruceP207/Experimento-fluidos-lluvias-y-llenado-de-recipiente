@@ -1,0 +1,169 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #0b101e;
+  transition: background-color 1s ease;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #e0e0e0;
+}
+
+/* Panel Principal Redimensionable */
+#panel {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(5px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  width: 260px;
+  min-width: 220px;
+  max-width: 400px;
+  height: auto;
+  min-height: 200px;
+  max-height: 90vh;
+  resize: both; /* Permite agrandar o achicar el panel */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cabecera-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: move;
+}
+
+.cabecera-panel h3 { margin: 0; font-size: 15px; }
+
+.contenido-panel {
+  padding: 15px;
+  overflow-y: auto; /* Scroll si el panel se hace muy pequeño */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Botones e Inputs */
+label { font-size: 12px; font-weight: bold; margin-top: 5px;}
+select, input[type="range"] { width: 100%; margin-top: 3px; cursor: pointer; }
+
+.btn-accion, .btn-flotante, .btn-herramienta {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-accion:hover, .btn-flotante:hover, .btn-herramienta:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-flotante {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  padding: 10px 15px;
+  z-index: 10;
+  font-weight: bold;
+}
+
+/* Barra Lateral de Herramientas */
+#sidebar {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+
+.btn-herramienta {
+  padding: 12px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Resultados */
+.caja-calculo {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.resultado {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  color: #60a5fa;
+  margin-top: 5px;
+}
+
+canvas { display: block; }
+/* Estilos para la Tabla Emergente (HUD) */
+.hud-flotante {
+  position: absolute;
+  background: rgba(10, 15, 30, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 4px solid #3b82f6; /* Este borde cambiará de color dinámicamente */
+  border-radius: 8px;
+  padding: 15px;
+  color: white;
+  font-family: 'Courier New', Courier, monospace; /* Fuente de telemetría */
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  pointer-events: none; /* Evita que bloquee los clics en el lienzo */
+  opacity: 0; /* Inicia invisible hasta que el JS lo ubique */
+  transition: opacity 0.5s ease;
+  z-index: 5;
+  min-width: 220px;
+}
+
+.hud-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-bottom: 5px;
+}
+
+.hud-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.hud-tabla td {
+  padding: 5px 0;
+}
+
+.hud-tabla td:first-child {
+  color: #cbd5e1;
+  padding-right: 15px;
+}
+
+.hud-tabla td:last-child {
+  text-align: right;
+  font-weight: bold;
+}
+
+.destaque {
+  color: #fbbf24; /* Color de advertencia mientras se llena */
+  text-shadow: 0 0 5px rgba(251, 191, 36, 0.4);
+}
